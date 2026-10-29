@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 import time
 from collections.abc import AsyncGenerator
 from typing import Any, cast

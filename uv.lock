@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 version = 1
 revision = 3
 requires-python = ">=3.11"

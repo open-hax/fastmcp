@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 name: Supported locked backport tests
 
 env:
@@ -25,6 +27,8 @@ permissions:
 jobs:
   run_tests:
     name: "Run supported locked tests: Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+    env:
+      PY_COLORS: ${{ matrix.os == 'windows-latest' && '0' || '1' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -53,14 +57,20 @@ jobs:
       - name: Run tests (excluding integration and client_process)
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            uv run --locked pytest --inline-snapshot=disable tests -m "not integration and not client_process"
+            uv run --locked pytest -q --color=no --inline-snapshot=disable tests -m "not integration and not client_process"
           else
             uv run --locked pytest --inline-snapshot=disable tests -m "not integration and not client_process" --numprocesses auto --maxprocesses 4 --dist worksteal
           fi
         shell: bash
 
       - name: Run client process tests separately
-        run: uv run --locked pytest --inline-snapshot=disable tests -m "client_process" -x
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            uv run --locked pytest -q --color=no --inline-snapshot=disable tests -m "client_process" -x
+          else
+            uv run --locked pytest --inline-snapshot=disable tests -m "client_process" -x
+          fi
+        shell: bash
 
   run_tests_lowest_direct:
     name: "Run supported locked dependencies"

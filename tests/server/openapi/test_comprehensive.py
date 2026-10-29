@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 """Comprehensive tests for OpenAPI new implementation."""
 
 import json
@@ -706,16 +708,14 @@ class TestOpenAPIComprehensive:
         """Test that server initialization is fast (no code generation latency)."""
         import time
 
-        # Time the server creation
-        start_time = time.time()
-
         async with httpx.AsyncClient(base_url="https://api.example.com") as client:
+            # Measure server construction independently of client TLS setup/exit.
+            start_time = time.perf_counter()
             server = FastMCPOpenAPI(
                 openapi_spec=comprehensive_openapi_spec,
                 client=client,
             )
-
-        end_time = time.time()
+            end_time = time.perf_counter()
 
         # Should be very fast (no code generation)
         initialization_time = end_time - start_time

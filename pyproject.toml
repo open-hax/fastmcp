@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 [project]
 name = "fastmcp"
 version = "2.14.5+openhax.joserfc.1"
