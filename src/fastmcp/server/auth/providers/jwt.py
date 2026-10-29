@@ -1,3 +1,6 @@
+# OpenHAX modification notice (2026-10-29): compatibility adaptation.
+# OpenHAX-authored changes: LGPL-3.0-or-later; upstream portions retain Apache-2.0.
+# See NOTICE and LICENSING.md for provenance and the modification boundary.
 """TokenVerifier implementations for FastMCP."""
 
 from __future__ import annotations
@@ -7,10 +10,10 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import httpx
-from authlib.jose import JsonWebKey, JsonWebToken
-from authlib.jose.errors import JoseError
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from joserfc import jwk, jwt
+from joserfc.errors import JoseError
 from pydantic import AnyHttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import TypedDict
@@ -22,6 +25,25 @@ from fastmcp.utilities.logging import get_logger
 from fastmcp.utilities.types import NotSet, NotSetT
 
 logger = get_logger(__name__)
+
+
+def _import_key_for_algorithm(key, algorithm: str):
+    """Import the configured key for the explicit allowed JWT algorithm."""
+    if algorithm.startswith("HS"):
+        return jwk.import_key(key, "oct")
+    if algorithm.startswith(("RS", "PS")):
+        return jwk.import_key(key, "RSA")
+    if algorithm.startswith("ES"):
+        return jwk.import_key(key, "EC")
+    raise ValueError(f"Unsupported algorithm: {algorithm}.")
+
+
+def _jwk_to_pem(key_data):
+    """Convert supported public JWKs using joserfc, as upstream PR4221 does."""
+    key_type = key_data.get("kty")
+    if key_type in {"RSA", "EC"}:
+        return jwk.import_key(key_data, key_type).as_pem().decode("utf-8")
+    raise ValueError(f"Unsupported JWK key type: {key_type!r}")
 
 
 class JWKData(TypedDict, total=False):
@@ -131,12 +153,10 @@ class RSAKeyPair:
             payload.update(additional_claims)
 
         # Create JWT
-        jwt_lib = JsonWebToken(["RS256"])
-        token_bytes = jwt_lib.encode(
-            header, payload, self.private_key.get_secret_value()
+        signing_key = _import_key_for_algorithm(
+            self.private_key.get_secret_value(), "RS256"
         )
-
-        return token_bytes.decode("utf-8")
+        return jwt.encode(header, payload, signing_key, algorithms=["RS256"])
 
 
 class JWTVerifierSettings(BaseSettings):
@@ -257,7 +277,6 @@ class JWTVerifier(TokenVerifier):
         self.audience = settings.audience
         self.public_key = settings.public_key
         self.jwks_uri = settings.jwks_uri
-        self.jwt = JsonWebToken([self.algorithm])
         self.logger = get_logger(__name__)
 
         # Simple JWKS cache
@@ -311,8 +330,7 @@ class JWTVerifier(TokenVerifier):
             self._jwks_cache = {}
             for key_data in jwks_data.get("keys", []):
                 key_kid = key_data.get("kid")
-                jwk = JsonWebKey.import_key(key_data)
-                public_key = jwk.get_public_key()  # type: ignore
+                public_key = _jwk_to_pem(key_data)
 
                 if key_kid:
                     self._jwks_cache[key_kid] = public_key
@@ -379,7 +397,8 @@ class JWTVerifier(TokenVerifier):
             verification_key = await self._get_verification_key(token)
 
             # Decode and verify the JWT token
-            claims = self.jwt.decode(token, verification_key)
+            key = _import_key_for_algorithm(verification_key, self.algorithm)
+            claims = jwt.decode(token, key, algorithms=[self.algorithm]).claims
 
             # Extract client ID early for logging
             client_id = (

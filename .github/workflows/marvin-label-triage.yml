@@ -1,3 +1,5 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
 name: Marvin Label Triage
 # Automatically triage GitHub issues and PRs using Marvin
 
@@ -19,6 +21,8 @@ concurrency:
 
 jobs:
   label-issue-or-pr:
+    # The upstream Marvin App and its credentials belong to PrefectHQ.
+    if: github.repository == 'PrefectHQ/fastmcp'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -43,7 +47,7 @@ jobs:
       - name: Set triage prompt
         id: triage-prompt
         run: |
-          cat >> $GITHUB_OUTPUT << 'EOF'
+          cat >> "$GITHUB_OUTPUT" << 'EOF'
           PROMPT<<PROMPT_END
           You're an issue triage assistant for FastMCP, a Python framework for building Model Context Protocol servers and clients. Your task is to analyze issues/PRs and apply appropriate labels.
 

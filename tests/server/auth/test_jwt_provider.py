@@ -1,8 +1,12 @@
+# Modified by OpenHAX contributors on 2026-10-29.
+# Original upstream terms remain; see NOTICE and LICENSING.md.
+import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
+from joserfc import jwk, jwt
 from pytest_httpx import HTTPXMock
 
 from fastmcp import Client, FastMCP
@@ -40,10 +44,6 @@ class SymmetricKeyHelper:
             additional_claims: Any additional claims to include
             algorithm: JWT signing algorithm (HS256, HS384, or HS512)
         """
-        import time
-
-        from authlib.jose import JsonWebToken
-
         # Create header
         header = {"alg": algorithm}
 
@@ -65,10 +65,9 @@ class SymmetricKeyHelper:
             payload.update(additional_claims)
 
         # Create JWT
-        jwt_lib = JsonWebToken([algorithm])
-        token_bytes = jwt_lib.encode(header, payload, self.secret)
-
-        return token_bytes.decode("utf-8")
+        return jwt.encode(
+            header, payload, jwk.import_key(self.secret, "oct"), algorithms=[algorithm]
+        )
 
 
 @pytest.fixture(scope="module")
@@ -79,7 +78,7 @@ def rsa_key_pair() -> RSAKeyPair:
 @pytest.fixture(scope="module")
 def symmetric_key_helper() -> SymmetricKeyHelper:
     """Generate a symmetric key helper for testing."""
-    return SymmetricKeyHelper("test-secret-key-for-hmac-signing")
+    return SymmetricKeyHelper("test-secret-key-for-hmac-signing-" * 3)
 
 
 @pytest.fixture(scope="module")
@@ -392,11 +391,9 @@ class TestBearerTokenJWKS:
     @pytest.fixture
     def mock_jwks_data(self, rsa_key_pair: RSAKeyPair) -> JWKSData:
         """Create mock JWKS data from RSA key pair."""
-        from authlib.jose import JsonWebKey
-
         # Create JWK from the RSA public key
-        jwk = JsonWebKey.import_key(rsa_key_pair.public_key)  # type: ignore
-        jwk_data: JWKData = jwk.as_dict()  # type: ignore
+        key = jwk.import_key(rsa_key_pair.public_key, "RSA")
+        jwk_data = cast(JWKData, key.as_dict(private=False))
         jwk_data["kid"] = "test-key-1"
         jwk_data["alg"] = "RS256"
 
