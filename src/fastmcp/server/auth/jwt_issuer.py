@@ -1,3 +1,6 @@
+# OpenHAX modification notice (2026-10-29): compatibility adaptation.
+# OpenHAX-authored changes: LGPL-3.0-or-later; upstream portions retain Apache-2.0.
+# See NOTICE and LICENSING.md for provenance and the modification boundary.
 """JWT token issuance and verification for FastMCP OAuth Proxy.
 
 This module implements the token factory pattern for OAuth proxies, where the proxy
@@ -11,11 +14,11 @@ import base64
 import time
 from typing import Any, overload
 
-from authlib.jose import JsonWebToken
-from authlib.jose.errors import JoseError
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from joserfc import jwk, jwt
+from joserfc.errors import JoseError
 
 from fastmcp.utilities.logging import get_logger
 
@@ -95,7 +98,7 @@ class JWTIssuer:
         self.issuer = issuer
         self.audience = audience
         self._signing_key = signing_key
-        self._jwt = JsonWebToken(["HS256"])
+        self._jwt_key = jwk.import_key(signing_key, "oct")
 
     def issue_access_token(
         self,
@@ -132,8 +135,7 @@ class JWTIssuer:
             "jti": jti,
         }
 
-        token_bytes = self._jwt.encode(header, payload, self._signing_key)
-        token = token_bytes.decode("utf-8")
+        token = jwt.encode(header, payload, self._jwt_key, algorithms=["HS256"])
 
         logger.debug(
             "Issued access token for client=%s jti=%s exp=%d",
@@ -180,8 +182,7 @@ class JWTIssuer:
             "token_use": "refresh",
         }
 
-        token_bytes = self._jwt.encode(header, payload, self._signing_key)
-        token = token_bytes.decode("utf-8")
+        token = jwt.encode(header, payload, self._jwt_key, algorithms=["HS256"])
 
         logger.debug(
             "Issued refresh token for client=%s jti=%s exp=%d",
@@ -208,7 +209,7 @@ class JWTIssuer:
         """
         try:
             # Decode and verify signature
-            payload = self._jwt.decode(token, self._signing_key)
+            payload = jwt.decode(token, self._jwt_key, algorithms=["HS256"]).claims
 
             # Validate expiration
             exp = payload.get("exp")

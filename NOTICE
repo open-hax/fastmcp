@@ -1,0 +1,16 @@
+OpenHAX compatibility fork, 2026-10-29.
+Based on FastMCP v2.14.5, upstream commit 21221b4ab128e8dd71b5d9637fa70a9139511380.
+The original Apache-2.0 LICENSE and copyright notices are retained unchanged.
+Local version: 2.14.5+openhax.joserfc.1; this is not an official upstream release.
+The JWT issuer and JWT provider JOSE adaptations derive from PrefectHQ/fastmcp
+PR4221, merged as b8c9d58d61aa6f48d436df7e61ade118ab3e702e.
+Only those two runtime auth files are adapted; the newer CIMD implementation is
+absent from 2.14.5 and is not added. Metadata declares patched Authlib, joserfc
+and the supported httpx2 integration. No warning filters are introduced.
+
+OpenHAX-authored library modifications: Copyright (C) 2026 OpenHAX contributors.
+GNU LGPL version 3 or later; see LICENSING.md, COPYING.LESSER and COPYING.
+Original upstream contributions and copied upstream patch portions remain Apache-2.0.
+
+Supported Python is explicitly >=3.11 because the nondeprecated httpx2 2.16.0
+integration requires Python >=3.11. The Cloud Cuckoo consumer uses Python3.13.

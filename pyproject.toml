@@ -1,6 +1,6 @@
 [project]
 name = "fastmcp"
-dynamic = ["version"]
+version = "2.14.5+openhax.joserfc.1"
 description = "The fast, Pythonic way to build MCP servers and clients."
 authors = [{ name = "Jeremiah Lowin" }]
 dependencies = [
@@ -13,7 +13,9 @@ dependencies = [
     "pydocket>=0.17.2",
     "rich>=13.9.4",
     "cyclopts>=4.0.0",
-    "authlib>=1.6.5",
+    "authlib==1.9.1",
+    "joserfc==1.7.7",
+    "httpx2==2.16.0",
     "pydantic[email]>=2.11.7",
     "pyperclip>=1.9.0",
     "py-key-value-aio[disk,keyring,memory]>=0.3.0,<0.4.0",
@@ -24,9 +26,10 @@ dependencies = [
     "packaging>=20.0",
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
-license = "Apache-2.0"
+license = "Apache-2.0 AND LGPL-3.0-or-later"
+license-files = ["LICENSE", "NOTICE", "COPYING", "COPYING.LESSER", "LICENSING.md"]
 
 keywords = [
     "mcp",
@@ -105,6 +108,7 @@ fallback-version = "0.0.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 # filterwarnings = ["error::DeprecationWarning"]
 filterwarnings = [
     # Suppress OAuth in-memory token storage warnings in tests
@@ -135,7 +139,7 @@ include = ["src", "tests"]
 exclude = ["**/node_modules", "**/__pycache__", ".venv", ".git", "dist"]
 
 [tool.ty.environment]
-python-version = "3.10"
+python-version = "3.11"
 
 [tool.ty.rules]
 # Rules with too many errors to fix right now (40+ each)
@@ -149,6 +153,10 @@ call-non-callable = "ignore" # 7 errors
 # See: https://github.com/astral-sh/ty/issues/122 and https://github.com/astral-sh/ty/issues/1113
 # Some code uses `# ty: ignore[invalid-argument-type]` for this limitation.
 # TODO: Remove these ignores once ty supports union narrowing
+
+[tool.ruff]
+# Retain upstream-compatible syntax while requiring Python >=3.11 at runtime.
+target-version = "py310"
 
 [tool.ruff.lint]
 fixable = ["ALL"]
